@@ -14,7 +14,9 @@ if project_root not in sys.path:
 from dotenv import load_dotenv
 load_dotenv(os.path.join(project_root, ".env"))
 
+import os
 from repository.mssql_repository import MssqlRepository
+from repository.sqlite_batch_repository import SqliteBatchRepository
 from typing import Dict, Any, Optional
 
 
@@ -38,12 +40,18 @@ def query_batch_counter(
     - start_date: 起始日期过滤（格式：YYYY-MM-DD，可选）
     - end_date: 结束日期过滤（格式：YYYY-MM-DD，可选）
     数据库由环境变量 MSSQL_DATABASE 指定。
+    如果环境变量USE_SQLITE=true，则使用本地SQLite数据库（无需SQL Server）
 
     返回:
     - 查询结果字典
     """
     try:
-        repo = MssqlRepository()
+        # 根据环境变量选择使用SQLite还是SQL Server
+        use_sqlite = os.getenv("USE_SQLITE", "true").lower() == "true"
+        if use_sqlite:
+            repo = SqliteBatchRepository()
+        else:
+            repo = MssqlRepository()
 
         if action == "page_query":
             return _page_query(repo, page, page_size, start_date, end_date)
@@ -93,18 +101,21 @@ def _page_query(
     where_clause, params = _build_date_filter(start_date, end_date)
     where_sql = f"WHERE {where_clause}" if where_clause else ""
 
-    # 查询总记录数
-    count_sql = f"SELECT COUNT(*) FROM [dbo].[batch_counter] {where_sql}"
+    # 查询总记录数（兼容SQLite和SQL Server，SQLite不支持[dbo.]前缀）
+    use_sqlite = os.getenv("USE_SQLITE", "true").lower() == "true"
+    table_name = "batch_counter" if use_sqlite else "[dbo].[batch_counter]"
+    
+    count_sql = f"SELECT COUNT(*) FROM {table_name} {where_sql}"
     total_count = repo.execute_scalar(count_sql, params if params else None)
 
     # 计算分页参数
     offset = (page - 1) * page_size
     total_pages = (total_count + page_size - 1) // page_size if total_count > 0 else 0
 
-    # 分页查询数据（使用 OFFSET...FETCH 语法，SQL Server 2012+）
+    # 分页查询数据（SQLite和SQL Server都支持的语法，仓库内部会做语法转换）
     data_sql = f"""
         SELECT id, batch_date, seq
-        FROM [dbo].[batch_counter]
+        FROM {table_name}
         {where_sql}
         ORDER BY batch_date DESC, id DESC
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
@@ -141,12 +152,16 @@ def _date_summary(
     """按日期统计seq合计（分页）"""
     where_clause, params = _build_date_filter(start_date, end_date)
     where_sql = f"WHERE {where_clause}" if where_clause else ""
+    
+    # 兼容SQLite和SQL Server
+    use_sqlite = os.getenv("USE_SQLITE", "true").lower() == "true"
+    table_name = "batch_counter" if use_sqlite else "[dbo].[batch_counter]"
 
     # 查询按日期分组的总数
     count_sql = f"""
         SELECT COUNT(*) FROM (
             SELECT batch_date
-            FROM [dbo].[batch_counter]
+            FROM {table_name}
             {where_sql}
             GROUP BY batch_date
         ) AS date_groups
@@ -166,7 +181,7 @@ def _date_summary(
             MIN(seq) AS seq_min,
             MAX(seq) AS seq_max,
             AVG(CAST(seq AS FLOAT)) AS seq_avg
-        FROM [dbo].[batch_counter]
+        FROM {table_name}
         {where_sql}
         GROUP BY batch_date
         ORDER BY batch_date DESC
@@ -207,6 +222,10 @@ def _total_summary(
     """获取整体汇总统计"""
     where_clause, params = _build_date_filter(start_date, end_date)
     where_sql = f"WHERE {where_clause}" if where_clause else ""
+    
+    # 兼容SQLite和SQL Server
+    use_sqlite = os.getenv("USE_SQLITE", "true").lower() == "true"
+    table_name = "batch_counter" if use_sqlite else "[dbo].[batch_counter]"
 
     summary_sql = f"""
         SELECT
@@ -218,7 +237,7 @@ def _total_summary(
             AVG(CAST(seq AS FLOAT)) AS seq_avg,
             MIN(batch_date) AS earliest_date,
             MAX(batch_date) AS latest_date
-        FROM [dbo].[batch_counter]
+        FROM {table_name}
         {where_sql}
     """
     data = repo.execute_query(summary_sql, params if params else None)
