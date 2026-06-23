@@ -11,6 +11,7 @@ from api.controllers.writing_controller import WritingController
 from api.controllers.batch_counter_controller import BatchCounterController
 
 from api.controllers.excel_import_controller import ExcelImportController
+from api.controllers.order_management_controller import OrderManagementController
 
 __all__ = [
     'BaseController',
@@ -20,4 +21,5 @@ __all__ = [
     'WritingController',   
     'BatchCounterController',
     'ExcelImportController',
+    'OrderManagementController',
 ]

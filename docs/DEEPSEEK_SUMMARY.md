@@ -5,6 +5,7 @@
 ### 1. 配置文件更新
 
 #### `.env` 文件
+
 - ✅ 添加 `LLM_PROVIDER` 配置项（支持 ollama/deepseek）
 - ✅ 添加 DeepSeek 专用配置：
   - `DEEPSEEK_API_KEY`
@@ -13,6 +14,7 @@
 - ✅ 保留 Ollama 配置作为备选
 
 #### `.env.example` 文件
+
 - ✅ 同步更新示例配置
 - ✅ 添加详细注释说明
 
@@ -21,7 +23,9 @@
 ### 2. 代码实现
 
 #### `agent_core/agent.py`
+
 **新增功能**：
+
 - ✅ 导入 OpenAI SDK（用于 DeepSeek）
 - ✅ 添加 `provider` 参数支持
 - ✅ 根据提供商初始化不同的客户端
@@ -32,6 +36,7 @@
 - ✅ 完善的错误处理和提示
 
 **关键改动**：
+
 ```python
 # 1. 导入 OpenAI SDK
 try:
@@ -59,11 +64,14 @@ def _call_llm(self, user_message: str) -> str:
 ---
 
 #### `chat_agent.py`
+
 **新增功能**：
+
 - ✅ 显示当前使用的提供商信息
 - ✅ 根据提供商显示不同的配置信息
 
 **输出示例**：
+
 ```
 正在初始化Agent...
 提供商: DeepSeek
@@ -76,7 +84,9 @@ API地址: https://api.deepseek.com
 ### 3. 测试工具
 
 #### `test_llm_provider.py`
+
 **功能**：
+
 - ✅ 自动检测当前配置的提供商
 - ✅ 测试 DeepSeek API 连接
 - ✅ 测试 Ollama API 连接
@@ -84,6 +94,7 @@ API地址: https://api.deepseek.com
 - ✅ 友好的输出格式
 
 **使用方法**：
+
 ```bash
 python test_llm_provider.py
 ```
@@ -93,7 +104,9 @@ python test_llm_provider.py
 ### 4. 文档
 
 #### `DEEPSEEK_INTEGRATION.md`
+
 **内容**：
+
 - ✅ 完整的配置指南
 - ✅ 两种提供商对比表
 - ✅ 使用方法和示例
@@ -115,6 +128,7 @@ python test_llm_provider.py
 ```
 
 **测试环境**：
+
 - 提供商: DeepSeek
 - API URL: https://api.deepseek.com
 - 模型: deepseek-v4-pro
@@ -176,11 +190,13 @@ if self.provider == "new_provider":
 针对不同提供商提供专门的错误提示：
 
 **DeepSeek 错误**：
+
 - API Key 验证失败
 - 调用超时
 - 频率超限
 
 **Ollama 错误**：
+
 - 服务未启动
 - 模型加载超时
 - 连接失败
@@ -192,12 +208,14 @@ if self.provider == "new_provider":
 ### 开发环境 → Ollama
 
 **优势**：
+
 - 免费
 - 快速迭代
 - 无需网络
 - 隐私安全
 
 **配置**：
+
 ```env
 LLM_PROVIDER=ollama
 LLM_MODEL=qwen2.5:3b
@@ -208,12 +226,14 @@ LLM_MODEL=qwen2.5:3b
 ### 生产环境 → DeepSeek
 
 **优势**：
+
 - 性能更好
 - 稳定性高
 - 专业支持
 - 可扩展性强
 
 **配置**：
+
 ```env
 LLM_PROVIDER=deepseek
 DEEPSEEK_MODEL=deepseek-v4-pro
@@ -305,6 +325,7 @@ python test_llm_provider.py
 ```
 
 预期输出：
+
 ```
 ✅ 连接成功！
 模型回复: Hello! How can I assist you today?...
@@ -320,6 +341,7 @@ python chat_agent.py
 ```
 
 预期输出：
+
 ```
 正在初始化Agent...
 提供商: DeepSeek
@@ -349,12 +371,14 @@ Agent: 已为您执行技能「batch-counter-query」：
 ### 1. API Key 安全
 
 **不要**将 API Key 提交到 Git：
+
 ```bash
 # .gitignore 中应包含
 .env
 ```
 
 **不要**在代码中硬编码：
+
 ```python
 # ❌ 错误
 api_key = "sk-123456789"
@@ -368,6 +392,7 @@ api_key = os.getenv("DEEPSEEK_API_KEY")
 ### 2. 费用管理
 
 DeepSeek 是付费服务，建议：
+
 - 设置每日预算上限
 - 监控使用情况
 - 定期查看账单
@@ -434,16 +459,16 @@ DeepSeek 是付费服务，建议：
 
 ## 📈 性能对比
 
-| 指标 | Ollama (本地) | DeepSeek (云端) |
-|------|--------------|----------------|
-| 响应时间 | ~2-5秒 | ~1-3秒 |
-| 准确率 | 85-90% | 90-95% |
-| 成本 | 免费 | $0.01-0.1/千token |
-| 隐私 | 完全本地 | 数据发送到云端 |
-| 可用性 | 依赖本地硬件 | 99.9% SLA |
-| 并发 | 受限于硬件 | 高并发支持 |
+| 指标     | Ollama (本地) | DeepSeek (云端)   |
+| -------- | ------------- | ----------------- |
+| 响应时间 | ~2-5秒        | ~1-3秒            |
+| 准确率   | 85-90%        | 90-95%            |
+| 成本     | 免费          | $0.01-0.1/千token |
+| 隐私     | 完全本地      | 数据发送到云端    |
+| 可用性   | 依赖本地硬件  | 99.9% SLA         |
+| 并发     | 受限于硬件    | 高并发支持        |
 
-*注：具体数值因模型和任务而异*
+_注：具体数值因模型和任务而异_
 
 ---
 
@@ -456,7 +481,7 @@ DeepSeek 是付费服务，建议：
 ✅ **易于扩展** - 可轻松添加新的提供商  
 ✅ **向后兼容** - 默认使用 Ollama，不影响现有功能  
 ✅ **完善文档** - 详细的配置和使用指南  
-✅ **测试工具** - 快速验证配置是否正确  
+✅ **测试工具** - 快速验证配置是否正确
 
 ---
 

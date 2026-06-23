@@ -92,6 +92,7 @@ agent = Agent(
 ```
 
 **环境变量配置（.env 文件）：**
+
 ```env
 LLM_API_URL=http://localhost:11434/v1/chat/completions
 LLM_MODEL=qwen2.5:3b
@@ -100,9 +101,10 @@ LLM_USE_THOUGHT=false
 ```
 
 **参数说明：**
+
 - `api_url`: 大模型API地址
 - `model`: 使用的模型名称
-- `use_thought`: 
+- `use_thought`:
   - `True`: 启用思考过程（有思考过程）
   - `False`: 禁用思考过程（无思考过程，更快）
 - `temperature`: 0-1之间的浮点数，控制回复的随机性
@@ -114,19 +116,21 @@ LLM_USE_THOUGHT=false
 根据你的API支持情况选择：
 
 **有思考过程（use_thought=True）**
+
 ```bash
 curl http://localhost:11434/api/chat \
   -d '{
-    "model": "qwen3.5:9b",
+    "model": "qwen2.5:3b",
     "messages": [{"role": "user", "content": "介绍一下德国!"}]
   }'
 ```
 
 **无思考过程（use_thought=False，推荐）**
+
 ```bash
 curl http://localhost:11434/api/chat \
   -d '{
-    "model": "qwen3.5:9b",
+    "model": "qwen2.5:3b",
     "messages": [{"role": "user", "content": "介绍一下德国!"}],
     "stream": false,
     "temperature": 0,
@@ -206,6 +210,7 @@ Agent 会自动从用户输入中提取参数：
 ### 参数提取失败
 
 在用户输入中明确指定参数，例如：
+
 - "标题是 我的文档"
 - "查询第2页，每页5条"
 

@@ -1,4 +1,5 @@
 import json
+import ast
 import os
 import requests
 from typing import List, Dict, Optional, Any
@@ -89,7 +90,6 @@ class Agent:
     
     def _build_system_prompt(self) -> str:
         """构建系统提示词，包含所有可用技能的信息"""
-        """构建系统提示词，包含所有可用技能的信息"""
         skills_info = []
         for skill in self.skill_manager.skills.values():
             skill_desc = f"- {skill.name}: {skill.description}\n"
@@ -102,6 +102,45 @@ class Agent:
                 skill_desc += "    - date_summary: 按日期统计seq合计\n"
                 skill_desc += "    - total_summary: 获取整体汇总统计\n"
                 skill_desc += "  注意：必须使用上述三种操作类型之一，不要使用其他名称！\n"
+            # 为 order-management 添加可用操作类型说明
+            elif skill.name == "order-management":
+                skill_desc += "  ⚠️ 【核心概念区分，必须牢记！】\n"
+                skill_desc += "    - skill_name（调用技能时的顶级参数）：永远只能是 'order-management'，这是系统识别的唯一技能名\n"
+                skill_desc += "    - action（params内部的参数，技能的子功能）：只能是下面列出的5个内部操作，用于技能内部调用不同的处理函数\n"
+                skill_desc += "  可用的内部操作类型（只能放在params里的action字段，绝对不能当skill_name用！）：\n"
+                skill_desc += "    - list_orders: 查询订单列表（当用户说'查询订单'、'查看订单'、'订单列表'、所有订单、最近订单等时使用）【最常用】\n"
+                skill_desc += "    - get_order_detail: 查看订单详情（当用户提到具体订单号、要查看某个订单的详情、查订单ORDxxxxxx、看订单123时使用）\n"
+                skill_desc += "    - create_order: 创建新订单（当用户说'创建订单'、'新建订单'、'生成订单'、新增订单、下单等时使用）\n"
+                skill_desc += "    - update_order_status: 更新订单状态（当用户说'更新状态'、'修改状态'、订单状态改为...、改成...、变为...等时使用）【强制】必须提取new_status参数！\n"
+                skill_desc += "    - order_statistics: 统计订单数据（当用户说'统计订单'、'订单统计'、分析订单、订单情况、订单汇总等时使用）\n"
+                skill_desc += "  参数提取规则（【强制】必须100%遵守，任何情况都不能违反！）：\n"
+                skill_desc += "  🎯 【get_order_detail必选参数】（缺一不可）：\n"
+                skill_desc += "    - 如果用户提到具体的订单号（如ORD20260618001），必须用get_order_detail，并设置order_no参数\n"
+                skill_desc += "    - 如果用户说'查看订单123的详情'，必须用get_order_detail，并设置order_id=123\n"
+                skill_desc += "    - 只要有数字订单号/ORD开头的单号，必须用get_order_detail，绝对不能用list_orders！\n"
+                skill_desc += "  🎯 【list_orders可选参数】（有就提取，没有就不传）：\n"
+                skill_desc += "    - status：筛选状态（必须用英文值！）\n"
+                skill_desc += "    - page: 页码, page_size: 每页数量, start_date: 开始日期, end_date: 结束日期, category: 商品类别\n"
+                skill_desc += "  🎯 【create_order必选参数】（缺一不可）：\n"
+                skill_desc += "    - customer_name: 客户姓名（从输入中提取真实姓名，不能空）\n"
+                skill_desc += "    - customer_phone: 客户手机号（11位手机号，必须提取）\n"
+                skill_desc += "    - items: 商品列表（数组格式，包含每个商品的name, quantity, price）\n"
+                skill_desc += "  🎯 【update_order_status必选参数】（缺一不可，必须同时存在）：\n"
+                skill_desc += "    1. order_id或order_no：订单ID/订单号（必须从输入中提取，不能空）\n"
+                skill_desc += "    2. new_status：新状态（必须提取！严格使用英文值，不能用中文！任何情况都不能省略）\n"
+                skill_desc += "  🎯 【order_statistics可选参数】：\n"
+                skill_desc += "    - start_date: 起始日期, end_date: 结束日期, group_by: 聚合维度\n"
+                skill_desc += "  🔴 【状态转换铁规则】任何情况下，中文状态描述必须转换成英文枚举值（【强制刻在脑子里】）：\n"
+                skill_desc += "    待支付/未支付/待付款/没付款 → 'pending'\n"
+                skill_desc += "    已支付/支付成功/付款成功/付过了 → 'paid'\n"
+                skill_desc += "    发货中/配送中/已发货/运输中 → 'shipping'\n"
+                skill_desc += "    已完成/交易完成/完成/完结了 → 'completed'\n"
+                skill_desc += "    规则：status和new_status参数只能用上面4个英文值，绝对不能传入中文！违者严重错误！\n"
+                skill_desc += "  🔴 【终极红线1】必须严格使用上述列出的5个action名称（list_orders/get_order_detail/create_order/update_order_status/order_statistics），绝对不能编造其他任何action名称！\n"
+                skill_desc += "  🔴 【终极红线2】params参数里，**必须强制包含action字段**，这是第一重要参数！任何情况都不能省略！且值只能是上述5个中的一个！系统靠这个action参数分发到正确的处理函数，缺少系统直接崩溃！\n"
+                skill_desc += "  🔴 【终极红线3】参数名必须标准！只能使用规定的参数名，绝对不能编造order_id_or_order_no这种拼接名！订单号就是order_no，数字ID就是order_id，分开传！\n"
+                skill_desc += "  🔴 【终极红线4】update_order_status调用时，params必须同时存在：action(=update_order_status)、order_no(订单号)、new_status(英文状态值)，三个参数缺一不可，少一个系统就无法运行！\n"
+                skill_desc += "  🔴 【终极红线5】get_order_detail是唯一查看订单详情的action，任何情况不能用list_orders代替！只要有订单号/ORD开头的单号，必须用get_order_detail！\n"
             
             skills_info.append(skill_desc)
         
@@ -216,7 +255,6 @@ class Agent:
         messages = []
         print("------------------user_message--------------" + str(user_message) + "--------------------------------")
         print("------------------conversation_history--------------" + str(self.conversation_history) + "--------------------------------")
-        print("------------------system_prompt--------------" + str(self.system_prompt) + "--------------------------------")
         
         # 延迟构建系统提示词，确保技能已发现
         system_prompt = self.system_prompt
@@ -234,15 +272,12 @@ class Agent:
                 "content": f"{system_prompt}\n\n用户消息：{user_message}"
             })
         else:
-            # 后续对话：先添加系统提示词（确保模型知道可用技能），再添加历史对话
+            # 【配置：不携带历史记录】每次请求都只发送系统提示词+当前用户消息，不携带任何历史对话
             messages.append({
                 "role": "user",
-                "content": system_prompt
+                "content": f"{system_prompt}\n\n用户消息：{user_message}"
             })
-            # 添加历史对话（只保留最近5轮，避免上下文过长）
-            for msg in self.conversation_history[-5:]:
-                messages.append(msg)
-            # 当前用户消息已经在conversation_history中，不需要重复添加
+            # 不再添加历史对话，确保每次都是独立请求
         
         # print("------------------messages--------------" + str(messages) + "--------------------------------")
         
@@ -294,10 +329,10 @@ class Agent:
                 content = result["content"]
             else:
                 content = str(result)
-            
+            print(f"[Ollama原始回复] {content}")
             return content.strip()
         except requests.exceptions.Timeout:
-            return f"API调用超时：Ollama响应时间过长（超过120秒）。\n建议：\n1. 检查Ollama服务是否正常运行\n2. 首次使用模型需要加载，请耐心等待\n3. 尝试使用更小的模型（如qwen2.5:0.5b）"
+            return f"API调用超时：Ollama响应时间过长（超过120秒）。\n建议：\n1. 检查Ollama服务是否正常运行\n2. 首次使用模型需要加载，请耐心等待\n3. 尝试使用更小的模型（如qwen2.5:3b）"
         except requests.exceptions.ConnectionError:
             return f"无法连接到Ollama服务：{self.api_url}\n请确保Ollama服务正在运行（执行 'ollama serve'）"
         except requests.exceptions.RequestException as e:
@@ -357,6 +392,34 @@ class Agent:
         """
         # 尝试从回复中提取JSON
         import re
+        
+        # 【修复】优先处理Ollama/OpenAI格式的标准聊天响应
+        try:
+            # 先尝试解析整个响应，看是否是标准的chat.completion格式
+            typeof_resp = type(response)
+            print(f"[解析] 尝试解析LLM回复，类型: {typeof_resp}, 内容: {response}")
+            full_resp = ast.literal_eval(response)
+            # 检查是否符合OpenAI/Ollama的响应结构：choices[0].message.content
+            if (isinstance(full_resp, dict) and 
+                "choices" in full_resp and 
+                len(full_resp["choices"]) > 0 and
+                isinstance(full_resp["choices"][0], dict) and  # 确保choice是字典
+                "message" in full_resp["choices"][0] and
+                isinstance(full_resp["choices"][0]["message"], dict) and  # 确保message是字典
+                "content" in full_resp["choices"][0]["message"]):
+                # 提取出真正的内容部分
+                inner_content = full_resp["choices"][0]["message"]["content"]
+                print(f"[解析] 检测到标准chat.completion格式，提取内部content: {inner_content}")
+                # 递归解析内部的content
+                return self._parse_llm_response(inner_content)
+        except json.JSONDecodeError:
+            # 仅捕获JSON解析错误，静默处理，继续使用原有的解析逻辑
+            print(f"[解析] 处理chat.completion格式时出现JSON解析错误，尝试继续解析原始回复...") 
+            pass
+        except Exception as e:
+            # 捕获其他意外错误，打印日志但不中断流程
+            print(f"[解析] 处理chat.completion格式时出现非致命错误: {str(e)}")
+            pass
         
         # 方法1: 查找完整的JSON对象（支持嵌套）
         try:
@@ -618,16 +681,14 @@ class Agent:
         # 【优化】所有请求都先通过LLM进行意图识别，确保准确性
         print("[AI分析] 正在分析用户意图...")
         llm_response = self._call_llm(user_message)
-        print(f"[AI回复] {llm_response[:200]}...")
         
         # 解析大模型的回复
+        print(f"[Agent] LLM原始回复: {llm_response}")
         instruction = self._parse_llm_response(llm_response)
         
         print("------------------instruction--------------" + str(instruction) + "--------------------------------")
         action = instruction.get("action", "chat")
-        print("------------------action--------------" + str(action) + "--------------------------------")
-        print("--------------------------------")
-        
+       
         if action == "call_skill_chain":
             # 【新增】处理技能链
             return self._execute_skill_chain(instruction)

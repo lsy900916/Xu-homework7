@@ -5,6 +5,12 @@ Controller层只负责：参数接收、调用Skill、返回结果
 
 将接口按功能模块分解到不同的控制器文件中
 """
+import sys
+from pathlib import Path
+# 添加项目根目录到Python路径，解决模块导入问题
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from flask import Flask
 from agent_core.skill_manager import SkillManager
 from agent_core.skill_executor import SkillExecutor
@@ -15,6 +21,7 @@ from api.controllers import (
     WritingController,   
     BatchCounterController,
     ExcelImportController,
+    OrderManagementController,
 )
 
 
@@ -45,8 +52,8 @@ class SkillController:
             WritingController(self.app, self.skill_manager, self.skill_executor),
             
             BatchCounterController(self.app, self.skill_manager, self.skill_executor),
-
             ExcelImportController(self.app, self.skill_manager, self.skill_executor),
+            OrderManagementController(self.app, self.skill_manager, self.skill_executor),
         ]
         
         # 注册所有控制器的路由

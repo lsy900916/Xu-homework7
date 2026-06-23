@@ -3,6 +3,7 @@
 ## 📋 概述
 
 本项目现已支持两种大模型提供商：
+
 - **Ollama**（本地部署，免费）
 - **DeepSeek**（云端API，需要API密钥）
 
@@ -88,6 +89,7 @@ python chat_agent.py
 启动后会显示当前使用的提供商：
 
 **使用 DeepSeek 时**：
+
 ```
 正在初始化Agent...
 提供商: DeepSeek
@@ -96,6 +98,7 @@ API地址: https://api.deepseek.com
 ```
 
 **使用 Ollama 时**：
+
 ```
 正在初始化Agent...
 提供商: Ollama
@@ -134,16 +137,16 @@ agent = Agent(
 
 ## 📊 两种提供商对比
 
-| 特性 | Ollama | DeepSeek |
-|------|--------|----------|
-| **部署方式** | 本地部署 | 云端API |
-| **费用** | 免费 | 按用量付费 |
-| **速度** | 取决于本地硬件 | 通常较快 |
-| **隐私** | 数据完全本地 | 数据发送到云端 |
-| **模型选择** | 开源模型 | DeepSeek官方模型 |
-| **网络要求** | 无需外网 | 需要外网 |
-| **配置复杂度** | 简单 | 需要API Key |
-| **适用场景** | 开发/测试/内网 | 生产环境/高性能需求 |
+| 特性           | Ollama         | DeepSeek            |
+| -------------- | -------------- | ------------------- |
+| **部署方式**   | 本地部署       | 云端API             |
+| **费用**       | 免费           | 按用量付费          |
+| **速度**       | 取决于本地硬件 | 通常较快            |
+| **隐私**       | 数据完全本地   | 数据发送到云端      |
+| **模型选择**   | 开源模型       | DeepSeek官方模型    |
+| **网络要求**   | 无需外网       | 需要外网            |
+| **配置复杂度** | 简单           | 需要API Key         |
+| **适用场景**   | 开发/测试/内网 | 生产环境/高性能需求 |
 
 ---
 
@@ -158,6 +161,7 @@ LLM_USE_THOUGHT=true
 ```
 
 启用后，代码会自动添加以下参数：
+
 ```python
 kwargs["reasoning_effort"] = "high"
 kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
@@ -213,6 +217,7 @@ Agent: 已为您执行技能链（2个技能）：
 ### Q1: 提示 "DeepSeek 需要 openai SDK"
 
 **解决方案**：
+
 ```bash
 pip install openai
 ```
@@ -222,6 +227,7 @@ pip install openai
 ### Q2: 提示 "使用 DeepSeek 需要设置 DEEPSEEK_API_KEY 环境变量"
 
 **解决方案**：
+
 1. 检查 `.env` 文件中是否设置了 `DEEPSEEK_API_KEY`
 2. 确保没有多余的空格或引号
 3. 重启程序使配置生效
@@ -231,11 +237,13 @@ pip install openai
 ### Q3: API Key 验证失败
 
 **可能原因**：
+
 - API Key 错误
 - API Key 已过期
 - 账户余额不足
 
 **解决方案**：
+
 1. 登录 DeepSeek 平台检查 API Key
 2. 确认账户有足够的余额
 3. 重新生成 API Key
@@ -245,10 +253,12 @@ pip install openai
 ### Q4: 调用超时
 
 **可能原因**：
+
 - 网络连接问题
 - DeepSeek 服务繁忙
 
 **解决方案**：
+
 1. 检查网络连接
 2. 稍后再试
 3. 考虑切换到 Ollama（本地运行）
@@ -258,10 +268,12 @@ pip install openai
 ### Q5: 如何在运行时动态切换？
 
 目前不支持运行时动态切换，需要：
+
 1. 修改 `.env` 文件中的 `LLM_PROVIDER`
 2. 重启程序
 
 未来可以考虑添加命令支持：
+
 ```
 你: /switch deepseek
 系统: 已切换到 DeepSeek 提供商
@@ -274,12 +286,14 @@ pip install openai
 ### 1. 保护 API Key
 
 **不要**将 API Key 提交到 Git：
+
 ```bash
 # .gitignore 中应包含
 .env
 ```
 
 **不要**在代码中硬编码：
+
 ```python
 # ❌ 错误做法
 api_key = "sk-123456789"
@@ -293,6 +307,7 @@ api_key = os.getenv("DEEPSEEK_API_KEY")
 ### 2. 定期轮换 API Key
 
 建议每 3-6 个月更换一次 API Key：
+
 1. 在 DeepSeek 平台生成新 Key
 2. 更新 `.env` 文件
 3. 删除旧 Key
@@ -302,6 +317,7 @@ api_key = os.getenv("DEEPSEEK_API_KEY")
 ### 3. 限制 API 使用量
 
 在 DeepSeek 平台设置：
+
 - 每日预算上限
 - 单次请求最大 token 数
 - IP 白名单（如果支持）
@@ -362,11 +378,11 @@ def _call_deepseek(self, messages: List[Dict[str, str]]) -> str:
         "stream": False,
         "temperature": self.temperature
     }
-    
+
     if self.use_thought:
         kwargs["reasoning_effort"] = "high"
         kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
-    
+
     response = self.client.chat.completions.create(**kwargs)
     return response.choices[0].message.content.strip()
 ```
@@ -378,6 +394,7 @@ def _call_deepseek(self, messages: List[Dict[str, str]]) -> str:
 ### 开发环境
 
 **推荐使用 Ollama**：
+
 - 免费
 - 快速迭代
 - 无需网络
@@ -393,6 +410,7 @@ LLM_MODEL=qwen2.5:3b
 ### 生产环境
 
 **推荐使用 DeepSeek**：
+
 - 性能更好
 - 稳定性高
 - 专业支持
@@ -424,6 +442,7 @@ agent_deepseek = Agent(..., provider="deepseek")
 ### 1. 缓存常用响应
 
 对于重复的问题，可以缓存响应：
+
 ```python
 cache = {}
 if user_message in cache:
@@ -435,6 +454,7 @@ if user_message in cache:
 ### 2. 批量处理
 
 如果需要处理多个请求，考虑批量调用：
+
 ```python
 responses = []
 for message in messages:
@@ -447,6 +467,7 @@ for message in messages:
 ### 3. 异步调用
 
 对于高并发场景，使用异步：
+
 ```python
 import asyncio
 
@@ -490,7 +511,7 @@ async def chat_async(message):
 ✅ **灵活切换** - 一行配置即可切换提供商  
 ✅ **透明使用** - 上层代码无需修改  
 ✅ **易于扩展** - 可轻松添加新的提供商  
-✅ **向后兼容** - 默认使用 Ollama，不影响现有功能  
+✅ **向后兼容** - 默认使用 Ollama，不影响现有功能
 
 ---
 

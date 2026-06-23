@@ -31,7 +31,8 @@
 │       ├── health_controller.py    # 健康检查控制器
 │       ├── skill_controller.py     # 技能管理控制器
 │       ├── writing_controller.py   # 技术文档写作控制器
-│       └── batch_counter_controller.py # 批次计数器查询控制器
+│       ├── batch_counter_controller.py # 批次计数器查询控制器
+│       └── order_management_controller.py # 订单管理API控制器
 │
 ├── repository/              # Repository/DAO层
 │   ├── __init__.py
@@ -43,11 +44,16 @@
 │   │   ├── SKILL.md
 │   │   ├── executor.py     # 技能执行器
 │   │   └── assets/
-│   └── batch-counter-query/ # 批次计数器查询技能
-│       ├── SKILL.md
+│   ├── batch-counter-query/ # 批次计数器查询技能
+│   │   ├── SKILL.md
+│   │   ├── executor.py      # 技能执行器
+│   │   └── scripts/
+│   │       └── batch_counter_query.py
+│   └── order-management/    # 订单管理技能
+│       ├── SKILL.md         # 技能元数据和使用规范
 │       ├── executor.py      # 技能执行器
 │       └── scripts/
-│           └── batch_counter_query.py
+│           └── order_management.py # 核心业务逻辑实现
 │
 ├── tests/                   # 测试模块
 │   ├── __init__.py
@@ -73,6 +79,7 @@
 ### 1. 安装依赖
 
 创建虚拟环境
+
 ```
 python 3.11以上
 python -m venv venv
@@ -82,6 +89,7 @@ source venv/bin/activate  # Linux/Mac
 backend中 生成一个.env文件
 
 ```
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -119,6 +127,7 @@ pytest -v
 
 - **technical-writing**: 技术文档写作助手（按固定规范生成Markdown格式的技术文档）
 - **batch-counter-query**: 批次计数器查询助手（支持对SQL Server数据库batch_counter表进行分页查询和按日期统计seq合计）
+- **order-management**: 订单管理助手，支持订单的查询、创建、状态更新和统计分析。当用户要查询订单(list_orders)、创建订单(create_order)、查看订单详情(get_order_detail)、更新订单状态(update_order_status)、统计订单数据(order_statistics)时调用。
 
 ### 架构特点
 
@@ -243,14 +252,30 @@ curl "http://localhost:5000/api/batch-counter/total-summary"
 curl -X POST http://localhost:5000/api/batch-counter/query \
   -H "Content-Type: application/json" \
   -d '{"action": "date_summary", "page": 1, "page_size": 10}'
+
+# 订单管理：查询订单列表
+curl "http://localhost:5000/api/orders/list?page=1&page_size=10"
+
+# 订单管理：获取订单详情
+curl "http://localhost:5000/api/orders/detail/ORD20260623006"
+
+# 订单管理：创建新订单
+curl -X POST http://localhost:5000/api/orders/create \
+  -H "Content-Type: application/json" \
+  -d '{"customer_name": "测试用户", "customer_phone": "13800138000", "items": [{"name": "测试商品", "quantity": 1, "price": 99.0}]}'
+
+# 订单管理：更新订单状态
+curl -X PUT http://localhost:5000/api/orders/update-status/ORD20260623006 \
+  -H "Content-Type: application/json" \
+  -d '{"new_status": "paid"}'
+
+# 订单管理：订单统计分析
+curl "http://localhost:5000/api/orders/statistics?group_by=status"
 ```
 
 详细API文档请参考 `docs/API_DOCUMENTATION.md`
 
 ## Agent 功能说明
-
-
-
 
 ### 智能技能识别
 
@@ -266,6 +291,7 @@ Agent 支持两种大模型提供商：**Ollama**（本地）和 **DeepSeek**（
 #### 配置参数
 
 从 `.env` 文件中自动读取以下配置：
+
 - `LLM_PROVIDER`: 大模型提供商（ollama 或 deepseek，默认: ollama）
 - `LLM_API_URL`: Ollama API地址（当 LLM_PROVIDER=ollama 时）
 - `LLM_MODEL`: Ollama 模型名称（当 LLM_PROVIDER=ollama 时）
@@ -317,7 +343,6 @@ agent = Agent(
 python chat_agent.py
 ```
 
-
 ```
 你: 帮我查询一下批次计数器的数据
 Agent: 已为您执行技能「batch-counter-query」：...
@@ -333,6 +358,18 @@ Agent: 德国是位于中欧的国家...
 Agent: [执行 excel-import-parse 技能]
        已为您执行技能「excel-import-parse」：
        {'success': True, 'file_path': 'upload/demo.xlsx', ...}
+
+你: 查询所有已支付的订单
+Agent: 已为您执行技能「order-management」：查询到3条已支付的订单...
+
+你: 查看订单ORD20260618006的详情
+Agent: 已为您执行技能「order-management」：订单详情如下...
+
+你: 将订单ORD20260618006的状态改为已支付
+Agent: 已为您执行技能「order-management」：订单状态已更新：待支付 → 已支付
+
+你: 统计一下本月的订单数据
+Agent: 已为您执行技能「order-management」：本月共创建订单15个，总金额¥15,000.00...
 
 
 ```
@@ -361,6 +398,8 @@ pytest --cov=. --cov-report=html
 - `tests/test_batch_counter.py` - 批次计数器查询测试（分页查询、日期统计、整体汇总、POST查询、集成测试）
 
 详细测试说明请参考 `tests/README.md`
+
+- `tests/test_api.py` 中的TestOrderManagementAPI类包含了订单管理模块的完整API测试（创建订单、查询列表、获取详情、更新状态、统计分析、参数兜底逻辑共6个测试用例）
 
 ## 文档
 

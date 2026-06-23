@@ -100,7 +100,7 @@ class SkillManager:
             "assets_path": skill.assets_path if os.path.exists(skill.assets_path) else None,
             "instructions": skill.instructions
         }
-        print(f"资源加载完成：{resources}\n")
+        print(f"资源加载完成\n")
         return resources
 
     # 根据关键词匹配技能（实现自动触发的基础）
